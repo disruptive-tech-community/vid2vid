@@ -1,4 +1,4 @@
-### Copyright (C) 2017 NVIDIA Corporation. All rights reserved. 
+### Copyright (C) 2017 NVIDIA Corporation. All rights reserved.
 ### Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 import time
 import os
@@ -30,9 +30,10 @@ web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.whic
 webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 
 print('Doing %d frames' % len(dataset))
+start_time = time.time()
 for i, data in enumerate(dataset):
     if i >= opt.how_many:
-        break    
+        break
     if data['change_seq']:
         model.fake_B_prev = None
 
@@ -40,16 +41,22 @@ for i, data in enumerate(dataset):
     A = Variable(data['A']).view(1, -1, input_nc, height, width)
     B = Variable(data['B']).view(1, -1, opt.output_nc, height, width) if opt.use_real_img else None
     inst = Variable(data['inst']).view(1, -1, 1, height, width) if opt.use_instance else None
+
     generated = model.inference(A, B, inst)
-    
+
     if opt.label_nc != 0:
         real_A = util.tensor2label(generated[1][0], opt.label_nc)
-    else:            
-        real_A = util.tensor2im(generated[1][0,0:1], normalize=False)    
-    
-    visual_list = [('real_A', real_A), 
-                   ('fake_B', util.tensor2im(generated[0].data[0]))]    
-    visuals = OrderedDict(visual_list) 
+    else:
+        real_A = util.tensor2im(generated[1][0,0:1], normalize=False)
+
+    visual_list = [('real_A', real_A),
+                   ('fake_B', util.tensor2im(generated[0].data[0]))]
+    visuals = OrderedDict(visual_list)
     img_path = data['A_paths']
     print('process image... %s' % img_path)
-    visualizer.save_images(webpage, visuals, img_path)    
+    visualizer.save_images(webpage, visuals, img_path)
+
+    end_time = time.time()
+    dt = end_time - start_time
+print("Total generation took: {:0.4f}s".format(dt))
+print("Time per frame: {:0.4f}s".format(dt / (i + 1)))
